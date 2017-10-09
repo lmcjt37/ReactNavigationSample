@@ -1,5 +1,6 @@
 import React, { PropTypes, Component } from 'react';
 import {
+  Alert,
   Button,
   Text,
   View,
@@ -8,8 +9,8 @@ import {
 } from 'react-native';
 
 import Styles from '../themes/Styles';
-const { AppAuthViewController, Alert, Events } = NativeModules;
-const EventsManagerEmitter = new NativeEventEmitter(Events);
+const { AppAuthViewController, EventEmitter } = NativeModules;
+const EventManager = new NativeEventEmitter(EventEmitter);
 
 class LoginScreen extends Component {
     constructor(props) {
@@ -23,7 +24,7 @@ class LoginScreen extends Component {
     };
 
     componentWillMount() {
-        this.LogEvent = EventsManagerEmitter.addListener(
+        this.LogEvent = EventManager.addListener(
             'LogEvent',
             (event) => console.log(JSON.stringify(event))
         );
@@ -35,17 +36,21 @@ class LoginScreen extends Component {
 
     render() {
         const { navigation } = this.props;
-        this.LogSuccess = EventsManagerEmitter.addListener(
+        this.LogSuccess = EventManager.addListener(
             'LogSuccess',
             (response) => {
                 if (response.success) {
-                    // this.setState({
-                    //     user: response.success
-                    // });
                     this.LogSuccess.remove();
                     navigation.dispatch({ type: 'Login' });
                 } else {
-                    Alert.getAlert("There was a problem logging in.");
+                    Alert.alert('Alert Title',
+                        'There was a problem logging in.',
+                        [
+                            {
+                                text: 'OK', onPress: () => console.log('OK Pressed')
+                            }
+                        ]
+                    );
                 }
             }
         );
@@ -57,11 +62,8 @@ class LoginScreen extends Component {
                 </Text>
                 <Button
                     onPress={() => {
-                        AppAuthViewController.isAuthorised((error, response) => {
-                            if (error) {
-                                Alert.getAlert(error);
-                            }
-                            if (response.success) {
+                        AppAuthViewController.isAuthorised((response) => {
+                            if (response) {
                                 this.LogSuccess.remove();
                                 navigation.dispatch({ type: 'Login' });
                             } else {
